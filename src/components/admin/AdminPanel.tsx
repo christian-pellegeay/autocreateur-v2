@@ -32,6 +32,12 @@ const AdminPanel: React.FC = () => {
   const [lowTicketThreshold, setLowTicketThreshold] = useState(10);
   const [toolUsageStats, setToolUsageStats] = useState<ToolUsage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState<'full_name' | 'tickets'>('full_name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const [totalUsers, setTotalUsers] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
 
   // State for new tool form
   const [showNewToolForm, setShowNewToolForm] = useState(false);
@@ -65,11 +71,13 @@ const AdminPanel: React.FC = () => {
         console.log('Fetching users and configuration...');
         setLoading(true);
         
-        // Fetch all user profiles
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('user_profiles')
-          .select('*');
-        
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        const { data: profilesData, error: profilesError, count } = await supabase          .from('user_profiles')
+          .select('*', { count: 'exact' })
+          .order(sortField, { ascending: sortOrder === 'asc' })
+          .range(from, to);
+                
         if (profilesError) {
           console.error('Error fetching user profiles:', profilesError);
           return;
@@ -78,8 +86,11 @@ const AdminPanel: React.FC = () => {
         console.log(`Fetched ${profilesData?.length || 0} user profiles`);
         
         // Fetch auth users to get emails
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-        
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
+          page,
+          perPage: pageSize
+        });
+                
         if (authError) {
           console.error('Error fetching auth users:', authError);
           return;
@@ -103,6 +114,7 @@ const AdminPanel: React.FC = () => {
         });
         
         setUsers(combinedUsers);
+        setTotalUsers(count || 0);
         
         // Load low ticket threshold
         const { data: configData } = await supabase
@@ -127,13 +139,25 @@ const AdminPanel: React.FC = () => {
     };
 
     fetchUsers();
-  }, [user, navigate, getToolUsageStats]);
+  }, [user, navigate, getToolUsageStats, sortField, sortOrder, page]);
 
   // Handle user selection
   const handleSelectUser = (userId: string) => {
     const selectedUser = users.find(u => u.id === userId);
     setSelectedUser(selectedUser || null);
   };
+  const handleSort = (field: 'full_name' | 'tickets') => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+    setPage(1);
+  };
+
+  const handlePrevPage = () => setPage(p => Math.max(p - 1, 1));
+  const handleNextPage = () => setPage(p => (p < totalPages ? p + 1 : p));
 
   // Update user tickets
   const handleUpdateTickets = async (e: React.FormEvent) => {
@@ -552,8 +576,32 @@ const AdminPanel: React.FC = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tickets</th>
+                        <th
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort('full_name')}
+                        >
+                          Nom
+                          {sortField === 'full_name' && (
+                            sortOrder === 'asc' ? (
+                              <Icons.ChevronUp className="inline w-3 h-3 ml-1" />
+                            ) : (
+                              <Icons.ChevronDown className="inline w-3 h-3 ml-1" />
+                            )
+                          )}
+                        </th>
+                        <th
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                          onClick={() => handleSort('tickets')}
+                        >
+                          Tickets
+                          {sortField === 'tickets' && (
+                            sortOrder === 'asc' ? (
+                              <Icons.ChevronUp className="inline w-3 h-3 ml-1" />
+                            ) : (
+                              <Icons.ChevronDown className="inline w-3 h-3 ml-1" />
+                            )
+                          )}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -581,8 +629,27 @@ const AdminPanel: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+                <div className="flex justify-between items-center px-4 py-2 bg-gray-50">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={page === 1}
+                    className="btn btn-secondary disabled:opacity-50"
+                  >
+                    Précédent
+                  </button>
+                  <span className="text-sm">
+                    Page {page} / {totalPages}
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                    className="btn btn-secondary disabled:opacity-50"
+                  >
+                    Suivant
+                  </button>
+                </div>
               </div>
-              
+
               <div className="mt-4">
                 <button
                   onClick={handleExportUsers}

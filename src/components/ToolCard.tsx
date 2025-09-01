@@ -35,11 +35,6 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
       navigate(`/tools/${tool.id}`);
       return;
     }
-<<<<<<< HEAD
-        
-=======
-    
->>>>>>> 4689f8433f3a3346e15f86524576d58d6425aca2
     // Check ticket count for paid tools
     if (user.tickets >= tool.ticketCost) {
       const success = await useTool(tool.id);
