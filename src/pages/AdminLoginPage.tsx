@@ -20,24 +20,16 @@ const AdminLoginPage: React.FC = () => {
     try {
       setLoading(true);
       
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-auth`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-        },
-        body: JSON.stringify({ username, password })
+      const { data, error: funcError } = await supabase.functions.invoke('admin-auth', {
+        body: { username, password }
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.token) {
-        sessionStorage.setItem('adminToken', data.token);
+      if (funcError) {
+        setError(funcError.message || 'Identifiants incorrects.');
+      } else if (data?.token) {        sessionStorage.setItem('adminToken', data.token);
         navigate('/JgMsAC');
       } else {
-        setError(data.error || 'Identifiants incorrects.');
+        setError('Identifiants incorrects.');
       }
     } catch (err) {
       setError('Une erreur est survenue. Veuillez réessayer.');

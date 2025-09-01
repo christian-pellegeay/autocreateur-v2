@@ -60,6 +60,7 @@ const AdminPanel: React.FC = () => {
   const [newTool, setNewTool] = useState<Partial<Tool>>(initialToolState);
 
   // Load users from Supabase and configuration
+
   useEffect(() => {
     if (!user?.isAdmin) {
       navigate('/');
@@ -146,7 +147,8 @@ const AdminPanel: React.FC = () => {
     const selectedUser = users.find(u => u.id === userId);
     setSelectedUser(selectedUser || null);
   };
-  const handleSort = (field: 'full_name' | 'tickets') => {
+
+ const handleSort = (field: 'full_name' | 'tickets') => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -629,7 +631,7 @@ const AdminPanel: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-                <div className="flex justify-between items-center px-4 py-2 bg-gray-50">
+               <div className="flex justify-between items-center px-4 py-2 bg-gray-50">
                   <button
                     onClick={handlePrevPage}
                     disabled={page === 1}
@@ -648,7 +650,7 @@ const AdminPanel: React.FC = () => {
                     Suivant
                   </button>
                 </div>
-              </div>
+               </div>
 
               <div className="mt-4">
                 <button

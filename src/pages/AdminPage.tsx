@@ -52,17 +52,11 @@ const AdminPage: React.FC = () => {
       }
 
       try {
-        const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-auth`;
-        const response = await fetch(functionUrl, {
-          method: 'GET',
-          headers: {
-            'x-admin-token': token,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-          }
-        });
+        const { error: funcError } = await supabase.functions.invoke('admin-auth', {
+          headers: { 'x-admin-token': token },
+          method: 'GET'       });
 
-        if (!response.ok) {
+        if (funcError) {
           navigate('/admin-login');
           return;
         }
